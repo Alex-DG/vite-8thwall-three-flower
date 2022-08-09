@@ -2,6 +2,12 @@
 
 8thwall + threeJS demo project made with viteJS⚡
 
+
+
+https://user-images.githubusercontent.com/4311684/183643486-b53f1837-3ce8-41f6-919d-0a6672576ee9.mp4
+
+
+
 ## Setup
 
 Run the following commands:
