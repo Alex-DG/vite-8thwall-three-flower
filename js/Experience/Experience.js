@@ -96,7 +96,7 @@ class _Experience {
     const randomPosition = getRandomSpherePoint(position, 1 / 2)
     flower.position.copy(randomPosition)
     // Rotate
-    flower.rotation.y = Math.random() * (Math.PI * 2)
+    flower.rotation.y = yDegrees
     flower.visible = true
 
     return flower
