@@ -1,7 +1,17 @@
 import * as THREE from 'three'
+// import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import modelSrc from '../../assets/models/marigold.glb'
+
+import {
+  getRandomFloat,
+  getRandomNumber,
+  getRandomSpherePoint,
+} from '../utils/maths'
+
+// const DRACO_DECODER_PATH =
+//   'https://raw.githubusercontent.com/mrdoob/three.js/dev/examples/js/libs/draco/'
 
 class _Experience {
   constructor() {
@@ -11,7 +21,17 @@ class _Experience {
     this.raycaster = new THREE.Raycaster()
     this.tapPosition = new THREE.Vector2()
     this.loader = new GLTFLoader()
+    // const dracoLoader = new DRACOLoader()
+    // dracoLoader.setDecoderPath(DRACO_DECODER_PATH)
+    // this.loader.setDRACOLoader(dracoLoader)
+
     this.engaged = false
+    this.modelReady = false
+
+    // Flowers
+    this.flowers = []
+    this.growthSpeed = []
+    this.scales = []
   }
 
   /**
@@ -53,6 +73,9 @@ class _Experience {
 
   bind() {
     this.placeObjectTouchHandler = this.placeObjectTouchHandler.bind(this)
+    this.animateIn = this.animateIn.bind(this)
+    this.createFlower = this.createFlower.bind(this)
+
     this.update = this.update.bind(this)
     this.render = this.render.bind(this)
     this.resize = this.resize.bind(this)
@@ -60,13 +83,43 @@ class _Experience {
     this.xrScene = this.xrScene.bind(this)
   }
 
-  animateIn(pointX, pointZ, yDegrees) {
-    const newFlower = this.flower.clone()
-    newFlower.rotation.set(0.0, yDegrees, 0.0)
-    newFlower.position.set(pointX, 0.0, pointZ)
-    // newFlower.scale.set(scale.x, scale.y, scale.z)
+  createFlower(pointX, pointZ, yDegrees) {
+    const flower = this.flower.clone()
+    const { position, rotation } = flower
+    position.set(pointX, 0, pointZ)
+    rotation.set(0.0, yDegrees, 0.0)
 
-    this.scene.add(newFlower)
+    /**
+     * Randomly rotate and define a position to give a bit of variation to the scene.
+     */
+    // Position
+    const randomPosition = getRandomSpherePoint(position, 1 / 2)
+    flower.position.copy(randomPosition)
+    // Rotate
+    flower.rotation.y = Math.random() * (Math.PI * 2)
+    flower.visible = true
+
+    return flower
+  }
+
+  animateIn(pointX, pointZ, yDegrees) {
+    const totalFlowers = getRandomNumber(1, 5)
+    const flowers = []
+
+    for (let i = 0; i < totalFlowers; i++) {
+      const flower = this.createFlower(pointX, pointZ, yDegrees)
+      const scale = {
+        value: flower.scale.clone(),
+        maxScale: getRandomFloat(1.5, 3),
+      }
+
+      this.flowers.push(flower)
+      this.growthSpeed.push(0)
+      this.scales.push(scale)
+
+      flowers.push(flower)
+    }
+    this.scene.add(...flowers)
   }
 
   placeObjectTouchHandler(e) {
@@ -104,7 +157,7 @@ class _Experience {
   //////////////////////////////////////////////////////////////////////////////
 
   setLight() {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
     this.scene.add(ambientLight)
   }
 
@@ -203,28 +256,27 @@ class _Experience {
   setFlower() {
     this.loader.load(modelSrc, (gltf) => {
       this.flower = gltf.scene
-      // this.flower.position.z = -4
-      // this.flower.scale.multiplyScalar(0)
+      this.flower.scale.multiplyScalar(0)
 
-      // this.scene.add(this.flower)
-
-      // // Update material
-      // this.flower.traverse((child) => {
-      //   // Sunflower mesh
-      //   if (child.isMesh) {
-      //     const material = child.material
-      //     const map = material.map
-      //     material.emissive = new THREE.Color('#FFFF00')
-      //     material.emissiveIntensity = 0.5
-      //     material.emissiveMap = map
-      //     material.color.convertSRGBToLinear()
-      //     map.encoding = THREE.sRGBEncoding
-      //   }
-      // })
+      // Update material
+      this.flower.traverse((child) => {
+        // Sunflower mesh
+        if (child.isMesh) {
+          const material = child.material
+          const map = material.map
+          material.emissive = new THREE.Color('#FFF')
+          material.emissiveIntensity = 0.5
+          material.emissiveMap = map
+          material.color.convertSRGBToLinear()
+          map.encoding = THREE.sRGBEncoding
+        }
+      })
 
       console.log('🌻', 'Model loaded', {
         flow: this.flower,
       })
+
+      this.modelReady = true
 
       // this.onSceneReady()
     })
@@ -268,6 +320,34 @@ class _Experience {
 
   //////////////////////////////////////////////////////////////////////////////
 
+  rescaleFlower(index) {
+    const flower = this.flowers[index]
+
+    if (flower) {
+      let growthSpeed = this.growthSpeed[index]
+      let scale = this.scales[index].value
+
+      growthSpeed += getRandomFloat(0.02, 0.03, 3)
+
+      scale.x += growthSpeed
+      scale.y += growthSpeed
+      scale.z += growthSpeed
+
+      const maxScale = this.scales[index].maxScale
+      flower.scale.x = Math.min(maxScale, scale.x)
+      flower.scale.y = Math.min(maxScale, scale.y)
+      flower.scale.z = Math.min(maxScale, scale.z)
+    }
+  }
+
+  updateFlowers() {
+    if (this.modelReady) {
+      for (let index = 0; index < this.flowers.length; index++) {
+        this.rescaleFlower(index)
+      }
+    }
+  }
+
   updateMarkerVisibility(rotation) {
     // const angle = new THREE.Euler(rotation.x, rotation.y, rotation.z, 'XYZ')
     // const deg = THREE.MathUtils.radToDeg(angle.x)
@@ -284,6 +364,8 @@ class _Experience {
     if (needsPrerenderFinish) {
       this.renderer.getContext().finish()
     }
+
+    this.updateFlowers()
 
     this.renderer.render(this.scene, this.camera)
 
