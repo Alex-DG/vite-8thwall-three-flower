@@ -11,6 +11,12 @@ const onxrloaded = () => {
     Pipeline.initModule(), // Create Three.js scene and camera.
 
     XR8.XrController.pipelineModule(), // Enables SLAM tracking.
+    // XR8.XrController.pipelineModule({
+    //   name: 'request-gyro',
+    //   requiredPermissions: () => [
+    //     XR8.XrPermissions.permissions().DEVICE_ORIENTATION,
+    //   ],
+    // }),
 
     XRExtras.AlmostThere.pipelineModule(), // Detects unsupported browsers and gives hints.
     XRExtras.RuntimeError.pipelineModule(), // Shows an error image on runtime error.

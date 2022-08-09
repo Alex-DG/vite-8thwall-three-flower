@@ -1,10 +1,16 @@
 import * as THREE from 'three'
-import ParticleMaterial from './ParticleMaterial'
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+
+import modelSrc from '../../assets/models/marigold.glb'
 
 class _Experience {
   constructor() {
     this.scene = new THREE.Scene()
+    this.sceneMarker = new THREE.Scene()
     this.clock = new THREE.Clock()
+    this.raycaster = new THREE.Raycaster()
+    this.tapPosition = new THREE.Vector2()
+    this.loader = new GLTFLoader()
     this.engaged = false
   }
 
@@ -21,13 +27,24 @@ class _Experience {
 
     this.bind()
 
+    this.surface = new THREE.Mesh(
+      new THREE.PlaneGeometry(100, 100, 1, 1),
+      new THREE.ShadowMaterial({
+        opacity: 0.5,
+      })
+    )
+
+    this.surface.rotateX(-Math.PI / 2)
+    this.surface.position.set(0, 0, 0)
+    this.surface.receiveShadow = true
+    this.scene.add(this.surface)
+
     this.setLight()
     this.setSizes({ canvasWidth, canvasHeight })
     this.setRenderer({ canvas, GLctx })
+    this.setFlower()
     this.setCamera()
     this.setMarker()
-    // this.setCube()
-    // this.setParticleSystem()
 
     this.engaged = true
 
@@ -35,11 +52,53 @@ class _Experience {
   }
 
   bind() {
+    this.placeObjectTouchHandler = this.placeObjectTouchHandler.bind(this)
     this.update = this.update.bind(this)
     this.render = this.render.bind(this)
     this.resize = this.resize.bind(this)
     this.detatch = this.detatch.bind(this)
     this.xrScene = this.xrScene.bind(this)
+  }
+
+  animateIn(pointX, pointZ, yDegrees) {
+    const newFlower = this.flower.clone()
+    newFlower.rotation.set(0.0, yDegrees, 0.0)
+    newFlower.position.set(pointX, 0.0, pointZ)
+    // newFlower.scale.set(scale.x, scale.y, scale.z)
+
+    this.scene.add(newFlower)
+  }
+
+  placeObjectTouchHandler(e) {
+    // Call XrController.recenter() when the canvas is tapped with two fingers. This resets the
+    // AR camera to the position specified by XrController.updateCameraProjectionMatrix() above.
+    if (e.touches.length === 2) {
+      XR8.XrController.recenter()
+    }
+
+    if (e.touches.length > 2) {
+      return
+    }
+
+    // If the canvas is tapped with one finger and hits the "surface", spawn an object.
+
+    // calculate tap position in normalized device coordinates (-1 to +1) for both components.
+    this.tapPosition.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1
+    this.tapPosition.y = -(e.touches[0].clientY / window.innerHeight) * 2 + 1
+
+    // Update the picking ray with the camera and tap position.
+    this.raycaster.setFromCamera(this.tapPosition, this.camera)
+
+    // Raycast against the "surface" object.
+    const intersects = this.raycaster.intersectObject(this.surface)
+    if (intersects.length > 0) {
+      this.animateIn(
+        intersects[0].point.x,
+        intersects[0].point.z,
+        Math.random() * 360
+      )
+    }
+    console.log({ intersects })
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -64,16 +123,25 @@ class _Experience {
       0.1,
       1000
     )
-
     this.camera.position.y = 3
-    this.camera.position.z = 3
 
     XR8.XrController.updateCameraProjectionMatrix({
       origin: this.camera.position,
       facing: this.camera.quaternion,
     })
 
+    this.cameraMarker = new THREE.PerspectiveCamera(
+      75,
+      this.sizes.width / this.sizes.height,
+      0.1,
+      1000
+    )
+    this.cameraMarker.position.z = 2.5
+
+    // this.scene.add(this.camera, this.cameraMarker)
     this.scene.add(this.camera)
+
+    // this.sceneMarker.add(this.cameraMarker)
   }
 
   setRenderer({ canvas, GLctx }) {
@@ -84,65 +152,101 @@ class _Experience {
       alpha: true,
     })
     this.renderer.autoClear = false
+    // this.renderer.outputEncoding = THREE.sRGBEncoding
     this.renderer.setSize(this.sizes.width, this.sizes.height)
-    // this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+
+    canvas.addEventListener('touchstart', this.placeObjectTouchHandler, true) // Add touch listener.
+    // this.canvas.addEventListener(
+    //   'touchstart',
+    //   (e) => {
+    //     // const { clientX, clientY } = e
+
+    //     const rect = this.renderer.domElement.getBoundingClientRect()
+    //     // const coords = {
+    //     //   x: ((clientX - rect.left) / rect.width) * 2 - 1,
+    //     //   y: ((clientY - rect.top) / rect.height) * -2 + 1,
+    //     // }
+    //     // this.raycaster.setFromCamera(coords, this.cameraMarker)
+
+    //     // // const intersects = this.raycaster.intersectObject(this.marker)
+    //     // const intersects = this.raycaster.intersectObjects(
+    //     //   this.sceneMarker.children,
+    //     //   true
+    //     // )
+
+    //     // if (e.touches.length > 2) {
+    //     //   return
+    //     // }
+
+    //     // calculate tap position in normalized device coordinates (-1 to +1) for both components.
+    //     // this.tapPosition.x = (e.touches[0].clientX / rect.width) * 2 - 1
+    //     // this.tapPosition.y = -(e.touches[0].clientY / rect.height) * 2 + 1
+    //     this.tapPosition.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1
+    //     this.tapPosition.y =
+    //       -(e.touches[0].clientY / window.innerHeight) * 2 + 1
+
+    //     // Update the picking ray with the camera and tap position.
+    //     // this.raycaster.setFromCamera(this.tapPosition, this.cameraMarker)
+
+    //     // // Raycast against the "surface" object.
+    //     // const intersects = this.raycaster.intersectObjects(
+    //     //   this.sceneMarker.children,
+    //     //   true
+    //     // )
+
+    //     // console.log({ intersects })
+    //   },
+    //   true
+    // )
+  }
+
+  setFlower() {
+    this.loader.load(modelSrc, (gltf) => {
+      this.flower = gltf.scene
+      // this.flower.position.z = -4
+      // this.flower.scale.multiplyScalar(0)
+
+      // this.scene.add(this.flower)
+
+      // // Update material
+      // this.flower.traverse((child) => {
+      //   // Sunflower mesh
+      //   if (child.isMesh) {
+      //     const material = child.material
+      //     const map = material.map
+      //     material.emissive = new THREE.Color('#FFFF00')
+      //     material.emissiveIntensity = 0.5
+      //     material.emissiveMap = map
+      //     material.color.convertSRGBToLinear()
+      //     map.encoding = THREE.sRGBEncoding
+      //   }
+      // })
+
+      console.log('🌻', 'Model loaded', {
+        flow: this.flower,
+      })
+
+      // this.onSceneReady()
+    })
   }
 
   setMarker() {
     const markerMaterial = new THREE.MeshBasicMaterial({
       color: 0xffffff,
       transparent: true,
-      opacity: 0.6,
+      opacity: 1,
+      side: THREE.DoubleSide,
     })
     const markerGeometry = new THREE.RingBufferGeometry(0.4, 0.5, 36).rotateX(
-      -Math.PI / 2
+      -Math.PI / 1.4
     )
 
     this.marker = new THREE.Mesh(markerGeometry, markerMaterial)
-    // this.marker.position.y = 0.5
-    // this.marker.position.z = -2
+    this.marker.name = 'marker'
+    this.marker.visible = false
+    this.marker.position.z = -3
 
-    this.marker.matrixAutoUpdate = false
-    this.scene.add(this.marker)
-  }
-
-  setCube() {
-    this.cube = new THREE.Mesh(
-      new THREE.BoxGeometry(1, 1, 1),
-      new THREE.MeshNormalMaterial()
-    )
-    this.cube.position.z = -4
-    this.cube.position.y = 2
-
-    this.scene.add(this.cube)
-  }
-
-  setParticleSystem() {
-    const count = this.count
-    this.particleMaterial = new ParticleMaterial()
-    const particleGeometry = new THREE.BufferGeometry()
-    const positionArray = new Float32Array(count * 3)
-    const scaleArray = new Float32Array(count) // add scale randomness
-
-    for (let i = 0; i < count; i++) {
-      positionArray[i * 3 + 0] = (Math.random() - 0.5) * 20
-      positionArray[i * 3 + 1] = Math.random() * 30
-      positionArray[i * 3 + 2] = (Math.random() - 0.5) * 20
-      scaleArray[i] = Math.random()
-    }
-
-    particleGeometry.setAttribute(
-      'position',
-      new THREE.BufferAttribute(positionArray, 3)
-    )
-    particleGeometry.setAttribute(
-      'aScale',
-      new THREE.BufferAttribute(scaleArray, 1)
-    )
-
-    this.particles = new THREE.Points(particleGeometry, this.particleMaterial)
-
-    this.scene.add(this.particles)
+    this.sceneMarker.add(this.marker)
   }
 
   //////////////////////////////////////////////////////////////////////////////
@@ -164,18 +268,11 @@ class _Experience {
 
   //////////////////////////////////////////////////////////////////////////////
 
-  updateCube() {
-    if (this.cube) {
-      this.cube.rotation.x += 0.01
-      this.cube.rotation.z += 0.01
-    }
-  }
-
-  updateParticleSystem() {
-    if (this.particleMaterial) {
-      const time = this.clock.getElapsedTime() * 1000
-      this.particleMaterial.uniforms.uTime.value = time
-    }
+  updateMarkerVisibility(rotation) {
+    // const angle = new THREE.Euler(rotation.x, rotation.y, rotation.z, 'XYZ')
+    // const deg = THREE.MathUtils.radToDeg(angle.x)
+    // this.marker.visible = Math.abs(deg) >= 15
+    this.marker.visible = Math.abs(rotation.x) >= 0.15
   }
 
   render(options) {
@@ -188,10 +285,9 @@ class _Experience {
       this.renderer.getContext().finish()
     }
 
-    this.updateCube()
-    this.updateParticleSystem()
-
     this.renderer.render(this.scene, this.camera)
+
+    // this.renderer.render(this.sceneMarker, this.cameraMarker)
   }
 
   update(options) {
@@ -199,17 +295,18 @@ class _Experience {
 
     const { processCpuResult } = options
 
-    console.log('update', { options })
-
     const realitySource =
       processCpuResult.reality || processCpuResult.facecontroller
 
     if (!realitySource) return
 
+    // console.log('update', { options })
+
     const { rotation, position, intrinsics } = realitySource
 
     for (let i = 0; i < 16; i++) {
       this.camera.projectionMatrix.elements[i] = intrinsics[i]
+      // this.cameraMarker.projectionMatrix.elements[i] = intrinsics[i]
     }
 
     // Fix for broken raycasting in r103 and higher. Related to:
@@ -224,17 +321,13 @@ class _Experience {
           .invert()
       } else {
         // Backwards compatible version
-        this.camera.projectionMatrixInverse.invert(camera.projectionMatrix)
+        this.camera.projectionMatrixInverse.invert(this.camera.projectionMatrix)
       }
-    }
-
-    if (this.marker) {
-      // this.marker.matrix.fromArray(intrinsics)
-      // this.marker.position.set(position.x, 0.3, position.z * -1)
     }
 
     if (rotation) {
       this.camera.setRotationFromQuaternion(rotation)
+      this.updateMarkerVisibility(rotation)
     }
 
     if (position) {
