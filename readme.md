@@ -1,6 +1,6 @@
 # ViteJS 8thwall ThreeJS Flower
 
-8thwall + threeJS demo project made with viteJS⚡
+8thwall + threeJS demo project made with viteJS⚡Growing flowers (again) 🌼
 
 
 
