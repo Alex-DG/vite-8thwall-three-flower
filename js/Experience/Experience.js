@@ -157,7 +157,7 @@ class _Experience {
   //////////////////////////////////////////////////////////////////////////////
 
   setLight() {
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.8)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
     this.scene.add(ambientLight)
   }
 
@@ -205,7 +205,7 @@ class _Experience {
       alpha: true,
     })
     this.renderer.autoClear = false
-    // this.renderer.outputEncoding = THREE.sRGBEncoding
+    this.renderer.outputEncoding = THREE.sRGBEncoding
     this.renderer.setSize(this.sizes.width, this.sizes.height)
 
     canvas.addEventListener('touchstart', this.placeObjectTouchHandler, true) // Add touch listener.
