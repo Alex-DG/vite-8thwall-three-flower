@@ -2,8 +2,6 @@ import * as THREE from 'three'
 // import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
-import modelSrc from '../../assets/models/marigold.glb'
-
 import {
   getRandomFloat,
   getRandomNumber,
@@ -24,6 +22,8 @@ class _Experience {
     // const dracoLoader = new DRACOLoader()
     // dracoLoader.setDecoderPath(DRACO_DECODER_PATH)
     // this.loader.setDRACOLoader(dracoLoader)
+
+    this.modelSrc = '../../assets/models/flowers/flower003.glb'
 
     this.engaged = false
     this.modelReady = false
@@ -110,7 +110,7 @@ class _Experience {
       const flower = this.createFlower(pointX, pointZ, yDegrees)
       const scale = {
         value: flower.scale.clone(),
-        maxScale: getRandomFloat(1.5, 3),
+        maxScale: getRandomFloat(0.2, 0.5),
       }
 
       this.flowers.push(flower)
@@ -209,52 +209,14 @@ class _Experience {
     this.renderer.setSize(this.sizes.width, this.sizes.height)
 
     canvas.addEventListener('touchstart', this.placeObjectTouchHandler, true) // Add touch listener.
-    // this.canvas.addEventListener(
-    //   'touchstart',
-    //   (e) => {
-    //     // const { clientX, clientY } = e
-
-    //     const rect = this.renderer.domElement.getBoundingClientRect()
-    //     // const coords = {
-    //     //   x: ((clientX - rect.left) / rect.width) * 2 - 1,
-    //     //   y: ((clientY - rect.top) / rect.height) * -2 + 1,
-    //     // }
-    //     // this.raycaster.setFromCamera(coords, this.cameraMarker)
-
-    //     // // const intersects = this.raycaster.intersectObject(this.marker)
-    //     // const intersects = this.raycaster.intersectObjects(
-    //     //   this.sceneMarker.children,
-    //     //   true
-    //     // )
-
-    //     // if (e.touches.length > 2) {
-    //     //   return
-    //     // }
-
-    //     // calculate tap position in normalized device coordinates (-1 to +1) for both components.
-    //     // this.tapPosition.x = (e.touches[0].clientX / rect.width) * 2 - 1
-    //     // this.tapPosition.y = -(e.touches[0].clientY / rect.height) * 2 + 1
-    //     this.tapPosition.x = (e.touches[0].clientX / window.innerWidth) * 2 - 1
-    //     this.tapPosition.y =
-    //       -(e.touches[0].clientY / window.innerHeight) * 2 + 1
-
-    //     // Update the picking ray with the camera and tap position.
-    //     // this.raycaster.setFromCamera(this.tapPosition, this.cameraMarker)
-
-    //     // // Raycast against the "surface" object.
-    //     // const intersects = this.raycaster.intersectObjects(
-    //     //   this.sceneMarker.children,
-    //     //   true
-    //     // )
-
-    //     // console.log({ intersects })
-    //   },
-    //   true
-    // )
   }
 
   setFlower() {
-    this.loader.load(modelSrc, (gltf) => {
+    this.loader.load('../../assets/models/flowers/flower000.glb', (gltf) => {
+      // console.log({
+      //   mesh: gltf.scene.children[0].children[0].children[0].children[0]
+      //     .children[0],
+      // })
       this.flower = gltf.scene
       this.flower.scale.multiplyScalar(0)
 
