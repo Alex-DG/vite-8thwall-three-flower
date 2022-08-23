@@ -1,6 +1,7 @@
 # ViteJS 8thwall ThreeJS Flower
 
-8thwall + threeJS demo project made with viteJS⚡Growing flowers (again) 🌼
+- 8thwall + threeJS demo project made with viteJS⚡Growing flowers (again) 🌼 
+- Based on my previous [Demo](https://github.com/Alex-DG/vite-three-webxr-flowers) made with webXR
 
 
 
